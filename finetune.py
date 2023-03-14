@@ -1,4 +1,4 @@
-from datasets import load_dataset
+from datasets import load_dataset, load_from_disk
 import transformers
 from transformers import LLaMAForCausalLM, LLaMATokenizer
 
@@ -14,8 +14,11 @@ tokenizer = LLaMATokenizer.from_pretrained(
 )
 tokenizer.pad_token_id = 0  # unk. we want this to be different from the eos token
 
-
-data = load_dataset("json", data_files="alpaca_data.json")
+dataset = "tiny"  # "tiny" or "alpaca"
+if dataset == "tiny":
+    data = load_from_disk("alpaca-lora/tiny_alpaca_data/")
+elif dataset == "alpaca":
+    data = load_dataset("json", data_files="alpaca-lora/alpaca_data.json")
 
 
 def generate_prompt(data_point):
