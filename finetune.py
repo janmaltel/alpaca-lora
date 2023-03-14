@@ -1,37 +1,20 @@
-import os
-
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-import torch
-import torch.nn as nn
-import bitsandbytes as bnb
 from datasets import load_dataset
 import transformers
-from transformers import AutoTokenizer, AutoConfig, LLaMAForCausalLM, LLaMATokenizer
-from peft import prepare_model_for_int8_training, LoraConfig, get_peft_model
+from transformers import LLaMAForCausalLM, LLaMATokenizer
+
+load_in_8bit = False
 
 model = LLaMAForCausalLM.from_pretrained(
     "decapoda-research/llama-7b-hf",
-    load_in_8bit=True,
+    load_in_8bit=load_in_8bit,
     device_map="auto",
 )
-
-
 tokenizer = LLaMATokenizer.from_pretrained(
     "decapoda-research/llama-7b-hf", add_eos_token=True
 )
-
-model = prepare_model_for_int8_training(model)
-
-config = LoraConfig(
-    r=4,
-    lora_alpha=16,
-    target_modules=["q_proj", "v_proj"],
-    lora_dropout=0.05,
-    bias="none",
-    task_type="CAUSAL_LM",
-)
-model = get_peft_model(model, config)
 tokenizer.pad_token_id = 0  # unk. we want this to be different from the eos token
+
+
 data = load_dataset("json", data_files="alpaca_data.json")
 
 
@@ -86,7 +69,7 @@ trainer = transformers.Trainer(
         learning_rate=LEARNING_RATE,
         fp16=True,
         logging_steps=1,
-        output_dir="lora-alpaca",
+        output_dir="pure-alpaca",
         save_total_limit=3,
     ),
     data_collator=transformers.DataCollatorForLanguageModeling(tokenizer, mlm=False),
@@ -94,4 +77,4 @@ trainer = transformers.Trainer(
 model.config.use_cache = False
 trainer.train(resume_from_checkpoint=False)
 
-model.save_pretrained("lora-alpaca")
+model.save_pretrained("pure-alpaca")
